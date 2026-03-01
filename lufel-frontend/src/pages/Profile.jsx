@@ -1,6 +1,21 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { updateUserDocument } from '../services/users';
+import { getOrdersByUserId } from '../services/orders';
+
+const STATUS_LABELS = {
+  pending: 'În așteptare',
+  processing: 'În procesare',
+  completed: 'Finalizată',
+  cancelled: 'Anulată'
+};
+
+const formatOrderDate = (createdAt) => {
+  if (!createdAt) return '—';
+  const d = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+  return d.toLocaleDateString('ro-RO', { dateStyle: 'medium' });
+};
 
 const Profile = () => {
   const { currentUser, userData } = useAuth();
@@ -12,6 +27,9 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [ordersError, setOrdersError] = useState('');
 
   useEffect(() => {
     if (userData) {
@@ -22,6 +40,26 @@ const Profile = () => {
       });
     }
   }, [userData]);
+
+  useEffect(() => {
+    if (!currentUser?.uid) {
+      setOrdersLoading(false);
+      return;
+    }
+    setOrdersError('');
+    const fetchOrders = async () => {
+      try {
+        const list = await getOrdersByUserId(currentUser.uid);
+        setOrders(list);
+      } catch (err) {
+        console.error('Error fetching orders:', err);
+        setOrdersError('Nu s-au putut încărca comenzile. Te rugăm să reîncerci.');
+      } finally {
+        setOrdersLoading(false);
+      }
+    };
+    fetchOrders();
+  }, [currentUser?.uid]);
 
   const handleChange = (e) => {
     setFormData({
@@ -55,7 +93,7 @@ const Profile = () => {
       }, 1000);
     } catch (err) {
       console.error('Error updating profile:', err);
-      setError(err.message || 'Nu s-a putut actualiza profilul. Te rugăm să încerci din nou.');
+      setError('Nu s-a putut salva modificările. Te rugăm să încerci din nou.');
     } finally {
       setLoading(false);
     }
@@ -160,10 +198,96 @@ const Profile = () => {
             </div>
           </form>
         </div>
+
+        {/* My Orders */}
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Comenzile mele</h2>
+          {ordersLoading ? (
+            <div className="bg-white rounded-lg shadow-md p-8 text-center">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-800 mx-auto"></div>
+              <p className="mt-3 text-gray-600">Se încarcă comenzile...</p>
+            </div>
+          ) : ordersError ? (
+            <div className="bg-white rounded-lg shadow-md p-8 text-center">
+              <p className="text-red-600 mb-2">{ordersError}</p>
+              <p className="text-sm text-gray-500">Verifică consola pentru detalii.</p>
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-600">
+              <p>Nu ai comenzi înregistrate. Comenzile plasate în timp ce ești conectat vor apărea aici.</p>
+              <Link to="/shop" className="mt-4 inline-block text-gray-800 font-medium hover:underline">Mergi la Magazin</Link>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {['pending', 'processing'].some(s => orders.some(o => o.status === s)) && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">În curs</h3>
+                  <ul className="space-y-2">
+                    {orders
+                      .filter(o => o.status === 'pending' || o.status === 'processing')
+                      .map(order => (
+                        <li key={order.id}>
+                          <OrderRow order={order} />
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              )}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Trecute</h3>
+                <ul className="space-y-2">
+                  {orders
+                    .filter(o => o.status !== 'pending' && o.status !== 'processing')
+                    .length === 0 ? (
+                    <p className="text-gray-500 text-sm">Nicio comandă trecută.</p>
+                  ) : (
+                    orders
+                      .filter(o => o.status !== 'pending' && o.status !== 'processing')
+                      .map(order => (
+                        <li key={order.id}>
+                          <OrderRow order={order} />
+                        </li>
+                      ))
+                  )}
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 };
+
+function OrderRow({ order }) {
+  const statusLabel = STATUS_LABELS[order.status] || order.status;
+  const isPaid = order.paymentStatus === 'succeeded';
+  const isPendingPayment = order.status === 'pending' && !isPaid;
+  return (
+    <Link
+      to={`/order-confirmation/${order.id}`}
+      className="flex flex-wrap items-center justify-between gap-2 bg-white rounded-lg shadow border border-gray-200 p-4 hover:border-gray-400 transition-colors"
+    >
+      <div className="flex flex-wrap items-center gap-4">
+        <span className="text-sm text-gray-500">{formatOrderDate(order.createdAt)}</span>
+        <span className="px-2 py-0.5 rounded text-sm font-medium bg-gray-100 text-gray-800">
+          {statusLabel}
+        </span>
+        {isPaid && (
+          <span className="px-2 py-0.5 rounded text-sm font-medium bg-green-100 text-green-800">
+            Plătit
+          </span>
+        )}
+        {isPendingPayment && (
+          <span className="text-amber-600 text-sm font-medium">Plată neconfirmată</span>
+        )}
+      </div>
+      <span className="font-semibold text-gray-900">
+        {typeof order.total === 'number' ? order.total.toFixed(2) : order.total} lei
+      </span>
+    </Link>
+  );
+}
 
 export default Profile;
 

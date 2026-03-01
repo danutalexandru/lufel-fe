@@ -18,79 +18,51 @@ export const getStripe = () => {
 };
 
 /**
- * Create a payment intent
- * Note: This should call a backend endpoint/Cloud Function that creates the Payment Intent
- * For now, this is a placeholder that expects a backend endpoint
- * 
+ * Create a Stripe Payment Link for an order. Amount is derived server-side (secure).
+ * Returns the URL to redirect the customer to Stripe's hosted checkout.
+ * Pass idToken when the user is logged in so the backend can verify order ownership.
+ *
  * @param {string} orderId - The order ID
- * @param {number} amount - The amount in dollars (will be converted to cents)
- * @returns {Promise<string>} - The client secret for the payment intent
+ * @param {string} successUrl - Full URL to redirect after successful payment (e.g. order confirmation)
+ * @param {string} [idToken] - Optional Firebase ID token (required for orders that have an owner)
+ * @returns {Promise<string>} - The Payment Link URL to redirect to
  */
-export const createPaymentIntent = async (orderId, amount) => {
+export const createPaymentLink = async (orderId, successUrl, idToken = null) => {
   try {
-    // Convert amount to cents (Stripe uses cents)
-    const amountInCents = Math.round(amount * 100);
-
-    // Call backend endpoint to create payment intent
-    const backendUrl = import.meta.env.VITE_BACKEND_URL;
-    if (!backendUrl) {
-      throw new Error('Backend URL not configured. Please set VITE_BACKEND_URL in your .env file.');
+    const fullUrl = (import.meta.env.VITE_CREATE_PAYMENT_LINK_URL || '').trim();
+    const baseUrl = (import.meta.env.VITE_BACKEND_URL || '').trim();
+    const url = fullUrl
+      ? fullUrl.replace(/\/+$/, '')
+      : baseUrl
+        ? `${baseUrl.replace(/\/+$/, '')}/createPaymentLink`
+        : '';
+    if (!url) {
+      throw new Error(
+        'Backend URL not configured. In .env set VITE_CREATE_PAYMENT_LINK_URL (full URL) or VITE_BACKEND_URL (base URL). Restart dev server after changing .env.'
+      );
     }
 
-    const response = await fetch(`${backendUrl}/createPaymentIntent`, {
+    const headers = { 'Content-Type': 'application/json' };
+    if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
+
+    const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         orderId,
-        amount: amountInCents,
-        currency: 'usd',
+        successUrl,
       }),
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to create payment intent');
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Nu s-a putut pregăti plata.');
     }
 
     const data = await response.json();
-    return data.clientSecret;
+    return data.url;
   } catch (error) {
-    console.error('Error creating payment intent:', error);
-    throw error;
-  }
-};
-
-/**
- * Confirm payment with Stripe
- * @param {Object} stripe - Stripe instance
- * @param {Object} elements - Stripe Elements instance
- * @param {string} clientSecret - Payment intent client secret
- * @returns {Promise<Object>} - Payment result
- */
-export const confirmPayment = async (stripe, elements, clientSecret) => {
-  try {
-    if (!stripe || !elements) {
-      throw new Error('Stripe not initialized');
-    }
-
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      clientSecret,
-      confirmParams: {
-        return_url: `${window.location.origin}/order-confirmation`,
-      },
-      redirect: 'if_required',
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    return paymentIntent;
-  } catch (error) {
-    console.error('Error confirming payment:', error);
+    console.error('Error creating payment link:', error);
     throw error;
   }
 };

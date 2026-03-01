@@ -100,10 +100,23 @@ const Orders = () => {
                     {formatDate(order.createdAt)}
                   </p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-wrap">
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[order.status] || 'bg-gray-100 text-gray-800'}`}>
                     {order.status === 'pending' ? 'În Așteptare' : order.status === 'processing' ? 'În Procesare' : order.status === 'completed' ? 'Finalizată' : order.status === 'cancelled' ? 'Anulată' : order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                   </span>
+                  {order.paymentStatus === 'succeeded' ? (
+                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                      Plătit
+                    </span>
+                  ) : order.paymentStatus === 'failed' ? (
+                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                      Plată eșuată
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
+                      Plată în așteptare
+                    </span>
+                  )}
                   <button
                     onClick={() => setSelectedOrder(selectedOrder?.id === order.id ? null : order)}
                     className="text-gray-600 hover:text-gray-900"
@@ -122,7 +135,7 @@ const Orders = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-700">Total</p>
-                  <p className="text-xl font-bold text-gray-900">${order.total?.toFixed(2)}</p>
+                  <p className="text-xl font-bold text-gray-900">{order.total?.toFixed(2)} lei</p>
                 </div>
               </div>
 
@@ -141,7 +154,7 @@ const Orders = () => {
                             {item.name} × {item.quantity}
                           </span>
                           <span className="text-gray-900">
-                            ${(item.price * item.quantity).toFixed(2)}
+                            {(item.price * item.quantity).toFixed(2)} lei
                           </span>
                         </div>
                       ))}

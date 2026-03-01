@@ -1,54 +1,41 @@
-# Video Replacement Instructions
+# Homepage Hero Video – Your Own Videos (Mobile + Desktop)
 
-The homepage currently uses a placeholder YouTube video. When you receive the client's video, you have two options:
+The homepage hero uses **two videos**: one for mobile and one for desktop. The right one is shown automatically based on screen size (breakpoint: 768px).
 
-## Option 1: Using a Local Video File (Recommended)
+## 1. Add your video files
 
-1. Place the video file in the `public/videos/` directory (create the `videos` folder if it doesn't exist)
-2. Supported formats: `.mp4`, `.webm`, `.ogg`
-3. Open `src/pages/Home.jsx`
-4. Find the video section (around line 7-45)
-5. Comment out or remove the `<iframe>` YouTube embed
-6. Uncomment the `<video>` tag section
-7. Update the `src` path to match your video file name
+Create the folder and put your two videos there:
 
-Example:
-```jsx
-<video
-  autoPlay
-  loop
-  muted
-  playsInline
-  className="absolute top-0 left-0 w-full h-full object-cover"
->
-  <source src="/videos/pottery-video.mp4" type="video/mp4" />
-  <source src="/videos/pottery-video.webm" type="video/webm" />
-  Your browser does not support the video tag.
-</video>
+```
+lufel-frontend/
+  public/
+    videos/
+      hero-mobile.mp4   ← video for phones / small screens
+      hero-desktop.mp4  ← video for tablets and desktops
 ```
 
-## Option 2: Using YouTube/Vimeo Embed
+- **Paths in the app:** `/videos/hero-mobile.mp4` and `/videos/hero-desktop.mp4`
+- **Format:** MP4 (H.264) is recommended for best support.
+- You can use other names; if you do, update the `src` in `src/pages/Home.jsx` to match.
 
-If the client provides a YouTube or Vimeo URL:
+## 2. File names used in code
 
-1. Extract the video ID from the URL
-2. Replace `L5JhHGKbKYQ` in the iframe `src` with the new video ID
-3. For YouTube: `https://www.youtube.com/watch?v=-YCGK33c0xs`
-4. For Vimeo: Use Vimeo's embed URL format
+In `src/pages/Home.jsx` the hero section uses:
 
-## Video Best Practices
+- **Mobile:** `src="/videos/hero-mobile.mp4"`
+- **Desktop:** `src="/videos/hero-desktop.mp4"`
 
-- **Format**: MP4 (H.264) is most widely supported
-- **Resolution**: 1920x1080 (Full HD) or higher recommended
-- **File Size**: Optimize for web (aim for < 10MB for good performance)
-- **Aspect Ratio**: 16:9 works best for full-width hero sections
-- **Duration**: 30-60 seconds for background videos is ideal
+To use different file names, change these two `src` values in `Home.jsx`.
 
-## Mobile Considerations
+## 3. Behaviour
 
-The current implementation is mobile-responsive. Videos will:
-- Scale appropriately on all screen sizes
-- Maintain aspect ratio
-- Play automatically (muted, as required by most browsers)
-- Loop seamlessly
+- **Mobile:** video with class `md:hidden` is shown below 768px width.
+- **Desktop:** video with class `hidden md:block` is shown from 768px up.
+- Both videos are: autoplay, loop, muted, `object-cover` (fill the hero area).
 
+## 4. Tips
+
+- **Mobile:** e.g. 720p, portrait or square often works well; keep file size moderate.
+- **Desktop:** e.g. 1920×1080 (16:9) for the hero.
+- **Size:** compress for web (e.g. &lt; 5–10 MB per file) for faster loading.
+- Browsers usually require **muted** for autoplay; the current setup is already muted.

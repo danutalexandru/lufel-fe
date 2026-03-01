@@ -1,7 +1,6 @@
 /**
- * LUFEL Backend - Stripe Payment Link + Webhook (reference copy)
- * The code that gets deployed is in functions/index.js (see firebase.json "source": "functions").
- * This file uses Firebase params (defineString, defineSecret) instead of deprecated functions.config().
+ * LUFEL Backend - Stripe Payment Link + Webhook
+ * Uses Firebase params (defineString, defineSecret) instead of deprecated functions.config()
  * See: https://firebase.google.com/docs/functions/config-env
  */
 const { onRequest } = require('firebase-functions/v2/https');
@@ -12,10 +11,15 @@ const stripe = require('stripe');
 admin.initializeApp();
 const db = admin.firestore();
 
+// Parameters (set via Firebase CLI or .env; secrets via Secret Manager)
 const appAllowedOrigin = defineString('APP_ALLOWED_ORIGIN', { default: '' });
 const stripeSecretKey = defineSecret('STRIPE_SECRET_KEY');
 const stripeWebhookSecret = defineSecret('STRIPE_WEBHOOK_SECRET');
 
+/**
+ * Create a Stripe Payment Link for an order.
+ * POST /createPaymentLink  Body: { orderId, successUrl }
+ */
 exports.createPaymentLink = onRequest(
   { secrets: [stripeSecretKey] },
   async (req, res) => {
@@ -40,8 +44,7 @@ exports.createPaymentLink = onRequest(
         return;
       }
 
-      // Prevent open redirect: when APP_ALLOWED_ORIGIN is set, successUrl must be same-origin.
-      // Recommended: set APP_ALLOWED_ORIGIN to your app origin (e.g. https://yourdomain.com).
+      // Prevent open redirect: successUrl must be same-origin as the app (set APP_ALLOWED_ORIGIN in config).
       const allowedOrigin = (appAllowedOrigin.value() || '').trim();
       if (allowedOrigin) {
         try {
@@ -137,6 +140,10 @@ exports.createPaymentLink = onRequest(
   }
 );
 
+/**
+ * Stripe Webhook - order confirmation uses checkout.session.completed only (Payment Link flow).
+ * payment_intent.succeeded is not used: Payment Link metadata does not flow to the Payment Intent.
+ */
 exports.stripeWebhook = onRequest(
   { secrets: [stripeSecretKey, stripeWebhookSecret] },
   async (req, res) => {
@@ -173,8 +180,6 @@ exports.stripeWebhook = onRequest(
     try {
       switch (event.type) {
         // Payment Links: Stripe sends checkout.session.completed when the customer pays.
-        // Order is found via session.metadata.orderId (if set on Payment Link) or by
-        // looking up orders where paymentLinkId === session.payment_link (we store that when creating the link).
         case 'checkout.session.completed': {
           const session = event.data.object;
           if (session.payment_status !== 'paid') break;
@@ -220,10 +225,7 @@ exports.stripeWebhook = onRequest(
           break;
         }
 
-        // Not used for Payment Links: Payment Link metadata does not flow to the Payment Intent,
-        // so payment_intent.succeeded typically has no orderId. Keep only if you add a flow
-        // that creates Payment Intents with metadata.orderId (e.g. Stripe Elements).
-        // case 'payment_intent.succeeded': { ... }
+        // payment_intent.succeeded not used for Payment Links (metadata does not flow to PI).
 
         // Only matches when Payment Intents are created with metadata.orderId (e.g. future Stripe Elements flow).
         case 'payment_intent.payment_failed': {

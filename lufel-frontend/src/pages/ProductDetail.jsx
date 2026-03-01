@@ -22,7 +22,7 @@ const ProductDetail = () => {
         setError(null);
       } catch (err) {
         console.error('Error fetching product:', err);
-        setError('Product not found');
+        setError('Produsul nu a fost găsit.');
       } finally {
         setLoading(false);
       }
@@ -31,9 +31,13 @@ const ProductDetail = () => {
     fetchProduct();
   }, [id]);
 
+  const inStock = (product?.stock ?? 0) > 0;
+  const maxQty = Math.max(0, product?.stock ?? 0);
+  const effectiveQty = inStock ? Math.min(quantity, maxQty) : 0;
+
   const handleAddToCart = () => {
-    addToCart(product, quantity);
-    // Optional: Show a success message or notification
+    if (!product || !inStock || effectiveQty <= 0) return;
+    addToCart(product, effectiveQty);
   };
 
   if (loading) {
@@ -112,7 +116,7 @@ const ProductDetail = () => {
             {/* Product Info */}
             <div>
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">{product.name}</h1>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6">${product.price.toFixed(2)}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6">{product.price.toFixed(2)} lei</p>
               <div className="prose max-w-none mb-4 sm:mb-6">
                 <p className="text-sm sm:text-base text-gray-600 leading-relaxed whitespace-pre-wrap">
                   {product.description}
@@ -120,6 +124,11 @@ const ProductDetail = () => {
               </div>
 
               <div className="border-t border-gray-200 pt-4 sm:pt-6">
+                {inStock && (
+                  <p className="text-sm text-gray-600 mb-3">
+                    Stoc disponibil: <span className="font-medium text-gray-900">{maxQty}</span>
+                  </p>
+                )}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
                   <label htmlFor="quantity" className="text-sm sm:text-base text-gray-700 font-medium">
                     Cantitate:
@@ -127,7 +136,8 @@ const ProductDetail = () => {
                   <div className="flex items-center border border-gray-300 rounded self-start">
                     <button
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="px-3 py-2 text-gray-600 hover:text-gray-900"
+                      disabled={!inStock}
+                      className="px-3 py-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label="Decrease quantity"
                     >
                       −
@@ -136,25 +146,32 @@ const ProductDetail = () => {
                       id="quantity"
                       type="number"
                       min="1"
-                      value={quantity}
-                      onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-16 text-center border-0 focus:ring-0 text-sm sm:text-base"
+                      max={maxQty || undefined}
+                      value={inStock ? Math.min(quantity, maxQty) : 0}
+                      onChange={(e) => setQuantity(Math.max(1, Math.min(maxQty, parseInt(e.target.value) || 1)))}
+                      disabled={!inStock}
+                      className="w-16 text-center border-0 focus:ring-0 text-sm sm:text-base disabled:bg-gray-50"
                     />
                     <button
-                      onClick={() => setQuantity(quantity + 1)}
-                      className="px-3 py-2 text-gray-600 hover:text-gray-900"
+                      onClick={() => setQuantity(Math.min(maxQty, quantity + 1))}
+                      disabled={!inStock}
+                      className="px-3 py-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label="Increase quantity"
                     >
                       +
                     </button>
                   </div>
                 </div>
-                <button
-                  onClick={handleAddToCart}
-                  className="w-full bg-gray-800 text-white px-6 py-2 sm:py-3 rounded-lg text-base sm:text-lg font-semibold hover:bg-gray-700 transition-colors"
-                >
-                  Adaugă în Coș
-                </button>
+                {inStock ? (
+                  <button
+                    onClick={handleAddToCart}
+                    className="w-full bg-gray-800 text-white px-6 py-2 sm:py-3 rounded-lg text-base sm:text-lg font-semibold hover:bg-gray-700 transition-colors"
+                  >
+                    Adaugă în Coș
+                  </button>
+                ) : (
+                  <p className="text-gray-500 font-medium">Stoc epuizat</p>
+                )}
               </div>
             </div>
           </div>

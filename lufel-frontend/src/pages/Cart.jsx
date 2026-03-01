@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 const Cart = () => {
   const { cartItems, removeFromCart, updateQuantity, getCartTotal } = useCart();
   const navigate = useNavigate();
+  console.log('Cart');
 
   if (cartItems.length === 0) {
     return (
@@ -25,6 +26,8 @@ const Cart = () => {
   }
 
   const total = getCartTotal();
+  console.log('cartItems', cartItems);
+  console.log('total', total);
 
   return (
     <div className="min-h-screen bg-ceramic-50 py-8 sm:py-12">
@@ -50,7 +53,7 @@ const Cart = () => {
                       <Link to={`/shop/${item.id}`}>
                         <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">{item.name}</h3>
                       </Link>
-                      <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">${item.price.toFixed(2)} bucata</p>
+                      <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">{item.price.toFixed(2)} lei bucata</p>
                       
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div className="flex items-center border border-gray-300 rounded self-start">
@@ -72,7 +75,7 @@ const Cart = () => {
                         </div>
                         <div className="flex items-center justify-between sm:block sm:text-right">
                           <p className="font-semibold text-gray-900 text-base sm:text-lg">
-                            ${(item.price * item.quantity).toFixed(2)}
+                            {(item.price * item.quantity).toFixed(2)} lei
                           </p>
                           <button
                             onClick={() => removeFromCart(item.id)}
@@ -96,12 +99,12 @@ const Cart = () => {
               <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
                 <div className="flex justify-between text-sm sm:text-base text-gray-600">
                   <span>Subtotal</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>{total.toFixed(2)} lei</span>
                 </div>
                 <div className="border-t border-gray-200 pt-3 sm:pt-4">
                   <div className="flex justify-between text-lg sm:text-xl font-bold text-gray-900">
                     <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
+                    <span>{total.toFixed(2)} lei</span>
                   </div>
                 </div>
               </div>

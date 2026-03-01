@@ -3,7 +3,8 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { createUserDocument, getUserDocument } from '../services/users';
@@ -49,6 +50,11 @@ export const AuthProvider = ({ children }) => {
     return await signOut(auth);
   }, []);
 
+  // Send password reset email
+  const resetPassword = useCallback(async (email) => {
+    return await sendPasswordResetEmail(auth, email);
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -87,8 +93,9 @@ export const AuthProvider = ({ children }) => {
     signup,
     login,
     logout,
+    resetPassword,
     isAdmin: userRole === 'ADMIN'
-  }), [currentUser, userRole, userData, signup, login, logout]);
+  }), [currentUser, userRole, userData, signup, login, logout, resetPassword]);
 
   return (
     <AuthContext.Provider value={value}>

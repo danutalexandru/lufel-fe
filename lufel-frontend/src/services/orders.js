@@ -73,6 +73,33 @@ export const getOrdersByStatus = async (status) => {
   }
 };
 
+// Get orders for a specific user (for client "My orders" page).
+// Query by userId only (no composite index required); sort by createdAt in memory.
+export const getOrdersByUserId = async (userId) => {
+  try {
+    if (!userId) return [];
+    const q = query(
+      collection(db, ORDERS_COLLECTION),
+      where('userId', '==', userId)
+    );
+    const querySnapshot = await getDocs(q);
+    const orders = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    // Sort by createdAt descending (newest first)
+    orders.sort((a, b) => {
+      const tA = a.createdAt?.toDate ? a.createdAt.toDate() : (a.createdAt ? new Date(a.createdAt) : new Date(0));
+      const tB = b.createdAt?.toDate ? b.createdAt.toDate() : (b.createdAt ? new Date(b.createdAt) : new Date(0));
+      return tB - tA;
+    });
+    return orders;
+  } catch (error) {
+    console.error('Error getting orders by user:', error);
+    throw error;
+  }
+};
+
 // Get a single order by ID
 export const getOrderById = async (id) => {
   try {

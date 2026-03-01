@@ -120,7 +120,7 @@ const Products = () => {
         await addProduct(productData);
         console.log('Product added successfully');
         // Show success message
-        setSuccessMessage(`Ai adaugat produsul: ${formData.name}, cu pretul: $${parseFloat(formData.price).toFixed(2)}, in cantitatea de: ${formData.stock}`);
+        setSuccessMessage(`Ai adăugat produsul: ${formData.name}, cu prețul: ${parseFloat(formData.price).toFixed(2)} lei, în cantitatea de: ${formData.stock}`);
         // Reset form and hide it
         setFormData({ name: '', description: '', price: '', stock: '', images: [] });
         setImageFiles([]);
@@ -134,7 +134,7 @@ const Products = () => {
       }
     } catch (error) {
       console.error('Error saving product:', error);
-      alert(`Nu s-a putut salva produsul: ${error.message || 'Eroare necunoscută'}`);
+      alert('Nu s-a putut salva produsul. Te rugăm să încerci din nou.');
     } finally {
       setUploading(false);
     }
@@ -259,7 +259,7 @@ const Products = () => {
 
               <div>
                 <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
-                  Preț ($) *
+                  Preț (lei) *
                 </label>
                 <input
                   type="number"
@@ -354,7 +354,7 @@ const Products = () => {
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">{product.name}</h3>
                   <p className="text-gray-600 text-sm mb-2 line-clamp-2">{product.description}</p>
                   <div className="flex justify-between items-center mb-2">
-                    <p className="text-xl font-bold text-gray-900">${product.price.toFixed(2)}</p>
+                    <p className="text-xl font-bold text-gray-900">{product.price.toFixed(2)} lei</p>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                       (product.stock || 0) > 0 
                         ? 'bg-green-100 text-green-800' 

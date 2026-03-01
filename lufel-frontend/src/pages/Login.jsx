@@ -50,7 +50,7 @@ const Login = () => {
       } else if (err.code === 'auth/too-many-requests') {
         setError('Prea multe încercări eșuate. Te rugăm să încerci mai târziu.');
       } else {
-        setError(err.message || 'Autentificare eșuată. Te rugăm să verifici emailul și parola.');
+        setError('Autentificare eșuată. Te rugăm să verifici emailul și parola și să încerci din nou.');
       }
     }
   };
@@ -110,6 +110,15 @@ const Login = () => {
                 placeholder="Parolă"
               />
             </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Link
+              to="/forgot-password"
+              className="text-sm text-gray-600 hover:text-gray-900"
+            >
+              Ai uitat parola?
+            </Link>
           </div>
 
           <div>

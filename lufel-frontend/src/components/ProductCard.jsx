@@ -3,10 +3,13 @@ import { useCart } from '../context/CartContext';
 
 const ProductCard = ({ product }) => {
   const { addToCart } = useCart();
+  if (!product) return null;
   const imageUrl = product.images && product.images.length > 0 ? product.images[0] : '/placeholder-image.jpg';
+  const inStock = (product.stock ?? 0) > 0;
 
   const handleAddToCart = (e) => {
     e.preventDefault();
+    if (!inStock) return;
     addToCart(product, 1);
   };
 
@@ -24,13 +27,17 @@ const ProductCard = ({ product }) => {
           <h3 className="text-lg font-semibold text-gray-800 mb-2">{product.name}</h3>
           <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
           <div className="flex justify-between items-center">
-            <span className="text-xl font-bold text-gray-900">${product.price.toFixed(2)}</span>
-            <button
-              onClick={handleAddToCart}
-              className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
-            >
-              Adaugă în Coș
-            </button>
+            <span className="text-xl font-bold text-gray-900">{product.price.toFixed(2)} lei</span>
+            {inStock ? (
+              <button
+                onClick={handleAddToCart}
+                className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
+              >
+                Adaugă în Coș
+              </button>
+            ) : (
+              <span className="text-sm font-medium text-gray-500">Stoc epuizat</span>
+            )}
           </div>
         </div>
       </Link>

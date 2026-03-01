@@ -62,7 +62,27 @@ The app will start on `http://localhost:5173` (or another port if 5173 is busy)
 
 ## Troubleshooting
 
-- If you get Firebase errors: Make sure you've updated `src/services/firebase.js` with your actual config
-- If authentication doesn't work: Check that Email/Password is enabled in Firebase Authentication
-- If you can't access admin: Make sure you created an admin user in Firebase Authentication console
+- **Firebase errors:** Make sure you've updated `src/services/firebase.js` (or `.env` with `VITE_FIREBASE_*`) with your actual config.
+- **Authentication doesn't work:** Check that Email/Password is enabled in Firebase Authentication.
+- **Can't access admin:** Make sure you created an admin user in Firebase Authentication and set their `role` to `ADMIN` in the `users` collection (see README).
+
+### Products don't load
+
+1. **Firestore database created**
+   - In [Firebase Console](https://console.firebase.google.com) → your project → **Firestore Database**.
+   - If you see "Create database", create it (choose a region, then start in test mode or production and add rules).
+
+2. **Rules deployed**
+   - Firestore Database → **Rules**.
+   - Paste the contents of this project's `firestore.rules` and click **Publish**.
+   - Products need `allow read: if true` so the shop can load without login.
+
+3. **Check the browser console**
+   - Open DevTools (F12) → Console. When you open the Shop page, look for errors:
+     - **permission-denied:** Rules are blocking read, or Firestore isn’t created. Deploy `firestore.rules` and ensure the database exists.
+     - **unavailable:** Network or wrong project. Check `.env` / Firebase config and that the project has Firestore enabled.
+   - The exact error code and message are logged when loading fails.
+
+4. **Empty list vs error**
+   - If the Shop page loads but shows "Momentan nu sunt produse disponibile.", the database connection works and the `products` collection is empty. Add products from the admin dashboard (Admin → Products).
 

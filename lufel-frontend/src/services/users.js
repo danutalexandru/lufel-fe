@@ -36,19 +36,21 @@ export const getUserDocument = async (userId) => {
   }
 };
 
-// Update user document (preserves role field)
+// Update user document. Role is never accepted from client (set only on create / server).
 export const updateUserDocument = async (userId, userData) => {
   try {
     const userRef = doc(db, USERS_COLLECTION, userId);
-    // Get current user data to preserve role if not provided
     const currentDoc = await getDoc(userRef);
     const currentData = currentDoc.exists() ? currentDoc.data() : {};
-    
+
+    const { role: _ignoredRole, ...safeData } = userData;
+    const role = currentData.role || 'CUSTOMER';
+
     await setDoc(userRef, {
-      ...userData,
-      role: userData.role || currentData.role || 'CUSTOMER', // Preserve role, default to CUSTOMER
+      ...safeData,
+      role,
       updatedAt: new Date()
-    }, { merge: true }); // merge: true to update only provided fields
+    }, { merge: true });
   } catch (error) {
     console.error('Error updating user document:', error);
     throw error;

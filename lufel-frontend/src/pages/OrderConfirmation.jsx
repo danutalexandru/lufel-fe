@@ -66,10 +66,6 @@ const OrderConfirmation = () => {
           <div className="border-t border-gray-200 pt-6 mb-6">
             <div className="text-left space-y-4">
               <div>
-                <p className="text-sm text-gray-600">Număr Comandă</p>
-                <p className="text-lg font-semibold text-gray-900">{order.id}</p>
-              </div>
-              <div>
                 <p className="text-sm text-gray-600">Status</p>
                 <p className="text-lg font-semibold text-gray-900 capitalize">{order.status === 'pending' ? 'În așteptare' : order.status === 'processing' ? 'În procesare' : order.status === 'completed' ? 'Finalizată' : order.status === 'cancelled' ? 'Anulată' : order.status}</p>
               </div>
@@ -81,7 +77,10 @@ const OrderConfirmation = () => {
                   ) : order.paymentStatus ? (
                     <span className="text-yellow-600">{order.paymentStatus}</span>
                   ) : (
-                    <span className="text-gray-600">În așteptare</span>
+                    <>
+                      <span className="text-gray-600">Neconfirmată</span>
+                      <p className="text-sm text-gray-500 font-normal mt-1">Stripe va confirma plata după ce finalizezi achitarea; dacă ai plătit deja, statusul se actualizează în câteva secunde.</p>
+                    </>
                   )}
                 </p>
               </div>
@@ -95,7 +94,7 @@ const OrderConfirmation = () => {
               )}
               <div>
                 <p className="text-sm text-gray-600">Total</p>
-                <p className="text-lg font-semibold text-gray-900">${order.total.toFixed(2)}</p>
+                <p className="text-lg font-semibold text-gray-900">{order.total.toFixed(2)} lei</p>
               </div>
             </div>
           </div>
@@ -108,7 +107,7 @@ const OrderConfirmation = () => {
                   <span className="text-gray-600">
                     {item.name} × {item.quantity}
                   </span>
-                  <span className="text-gray-900">${(item.price * item.quantity).toFixed(2)}</span>
+                  <span className="text-gray-900">{(item.price * item.quantity).toFixed(2)} lei</span>
                 </div>
               ))}
             </div>

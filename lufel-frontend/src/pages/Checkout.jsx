@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { createOrder } from '../services/orders';
+import { getProductById } from '../services/products';
 import { useAuth } from '../context/AuthContext';
 
 const Checkout = () => {
@@ -10,6 +11,8 @@ const Checkout = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [stockByProductId, setStockByProductId] = useState({});
+  const [stockLoading, setStockLoading] = useState(true);
   const [createAccount, setCreateAccount] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -32,6 +35,39 @@ const Checkout = () => {
       address: prev.address || userData?.address || ''
     }));
   }, [currentUser, userData]);
+
+  // Fetch current stock for each product in cart (to block checkout when out of stock / over quantity)
+  useEffect(() => {
+    if (!cartItems.length) {
+      setStockByProductId({});
+      setStockLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setStockLoading(true);
+    Promise.all(
+      cartItems.map(async (item) => {
+        try {
+          const product = await getProductById(item.id);
+          return { id: item.id, stock: product.stock ?? 0 };
+        } catch {
+          return { id: item.id, stock: 0 };
+        }
+      })
+    ).then((results) => {
+      if (cancelled) return;
+      const map = {};
+      results.forEach((r) => { map[r.id] = r.stock; });
+      setStockByProductId(map);
+      setStockLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [cartItems]);
+
+  const invalidStockItems = cartItems.filter(
+    (item) => (stockByProductId[item.id] ?? 0) < item.quantity
+  );
+  const hasStockIssues = invalidStockItems.length > 0;
 
   const handleChange = (e) => {
     setFormData({
@@ -75,6 +111,22 @@ const Checkout = () => {
         userId = currentUser.uid;
       }
 
+      // Re-validate stock right before creating order (in case it changed)
+      for (const item of cartItems) {
+        let available = 0;
+        try {
+          const product = await getProductById(item.id);
+          available = product.stock ?? 0;
+        } catch {
+          available = 0;
+        }
+        if (item.quantity > available) {
+          throw new Error(
+            `Stoc insuficient pentru „${item.name}”. Disponibil: ${available}. Te rugăm să reduci cantitatea sau să elimini produsul din coș.`
+          );
+        }
+      }
+
       // Create order
       const orderData = {
         items: cartItems.map(item => ({
@@ -94,6 +146,7 @@ const Checkout = () => {
       };
 
       const orderId = await createOrder(orderData);
+      console.log('orderId', orderId);
 
       // Clear cart
       clearCart();
@@ -102,7 +155,7 @@ const Checkout = () => {
       navigate(`/payment/${orderId}`);
     } catch (err) {
       console.error('Error placing order:', err);
-      setError(err.message || 'Nu s-a putut plasa comanda. Te rugăm să încerci din nou.');
+      setError(err?.message || 'Nu s-a putut plasa comanda. Te rugăm să încerci din nou în câteva momente.');
     } finally {
       setLoading(false);
     }
@@ -124,6 +177,21 @@ const Checkout = () => {
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
                   {error}
+                </div>
+              )}
+
+              {!stockLoading && hasStockIssues && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded">
+                  <p className="font-medium mb-2">Stoc insuficient pentru unele produse:</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    {invalidStockItems.map((item) => (
+                      <li key={item.id}>
+                        <strong>{item.name}</strong> — ceri {item.quantity}, disponibil:{' '}
+                        {stockByProductId[item.id] ?? 0}. Reduce cantitatea în <Link to="/cart" className="underline font-medium">coș</Link> sau elimină produsul.
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 text-sm">Nu poți plasa comanda până rezolvi stocul.</p>
                 </div>
               )}
 
@@ -236,10 +304,10 @@ const Checkout = () => {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || stockLoading || hasStockIssues}
                 className="w-full bg-gray-800 text-white px-6 py-2 sm:py-3 rounded-lg text-base sm:text-lg font-semibold hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Se plasează comanda...' : 'Plasează Comanda'}
+                {loading ? 'Se plasează comanda...' : stockLoading ? 'Se verifică stocul...' : hasStockIssues ? 'Rezolvă stocul pentru a plasa' : 'Plasează Comanda'}
               </button>
             </form>
           </div>
@@ -249,18 +317,27 @@ const Checkout = () => {
             <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 md:sticky md:top-4">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Rezumat Comandă</h2>
               <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="flex justify-between text-xs sm:text-sm">
-                    <span className="text-gray-600">
-                      {item.name} × {item.quantity}
-                    </span>
-                    <span className="text-gray-900">${(item.price * item.quantity).toFixed(2)}</span>
-                  </div>
-                ))}
+                {cartItems.map((item) => {
+                  const available = stockByProductId[item.id] ?? null;
+                  const insufficient = available !== null && item.quantity > available;
+                  return (
+                    <div key={item.id} className={`flex justify-between text-xs sm:text-sm ${insufficient ? 'text-amber-700' : ''}`}>
+                      <span>
+                        {item.name} × {item.quantity}
+                        {insufficient && (
+                          <span className="block text-amber-600 mt-0.5">
+                            Stoc: {available}
+                          </span>
+                        )}
+                      </span>
+                      <span>{(item.price * item.quantity).toFixed(2)} lei</span>
+                    </div>
+                  );
+                })}
                 <div className="border-t border-gray-200 pt-3 sm:pt-4">
                   <div className="flex justify-between text-lg sm:text-xl font-bold text-gray-900">
                     <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
+                    <span>{total.toFixed(2)} lei</span>
                   </div>
                 </div>
               </div>

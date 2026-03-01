@@ -4,8 +4,8 @@ Backend Cloud Functions for LUFEL pottery shop, handling Stripe payment processi
 
 ## Features
 
-- **Payment Intent Creation**: Creates Stripe Payment Intents for orders
-- **Webhook Handler**: Processes Stripe payment events (optional but recommended)
+- **Payment Link Creation**: Creates Stripe Payment Links for orders (hosted checkout); amount from Firestore.
+- **Webhook Handler**: Processes Stripe events (`checkout.session.completed`, `payment_intent.succeeded` / `payment_intent.payment_failed`).
 
 ## Setup
 
@@ -35,19 +35,49 @@ When prompted:
 - Choose JavaScript
 - Install dependencies: Yes
 
-### 4. Configure Stripe
+### 4. Configure Stripe (params / Secret Manager)
 
-Set your Stripe secret key and webhook secret (optional) using Firebase Functions config:
+The backend uses **Firebase params** (no deprecated `functions.config()`). Stripe keys are stored in **Secret Manager**.
+
+| What | Where to get it |
+|------|-----------------|
+| **Secret key** (`sk_test_...`) | [Stripe Dashboard](https://dashboard.stripe.com) → **Developers** → **API keys** |
+| **Webhook signing secret** (`whsec_...`) | Create a Webhook in Stripe (see below); then **Reveal** signing secret |
+
+**Step 1 – Set Stripe secret key (required):**
+
+From the **backend** directory (or `functions/` if you run from there):
 
 ```bash
-# Set Stripe secret key (get from Stripe Dashboard → Developers → API keys)
-firebase functions:config:set stripe.secret_key="sk_test_your_secret_key_here"
-
-# Set webhook secret (optional, get from Stripe Dashboard → Developers → Webhooks)
-firebase functions:config:set stripe.webhook_secret="whsec_your_webhook_secret_here"
+cd functions
+firebase functions:secrets:set STRIPE_SECRET_KEY
 ```
 
-For production, use your live keys (starting with `sk_live_`).
+When prompted, paste your Stripe **secret key** (`sk_test_...` or `sk_live_...`).
+
+**Step 2 – Set webhook secret (optional; needed so orders are marked “paid” automatically):**
+
+1. Deploy once: `firebase deploy --only functions`
+2. In Stripe Dashboard → **Developers** → **Webhooks** → **Add endpoint**
+3. **Endpoint URL:** `https://YOUR_REGION-YOUR_PROJECT.cloudfunctions.net/stripeWebhook`
+4. **Events:** `checkout.session.completed`, `payment_intent.succeeded`, `payment_intent.payment_failed`
+5. After creating the webhook, click **Reveal** under **Signing secret** and copy `whsec_...`
+6. Set it:
+
+```bash
+firebase functions:secrets:set STRIPE_WEBHOOK_SECRET
+```
+
+Paste the `whsec_...` value when prompted, then **redeploy**: `firebase deploy --only functions`.
+
+**Optional – CORS (allowed origin):**  
+To restrict CORS to your frontend URL, create `functions/.env` or `functions/.env.<project_id>` with:
+
+```
+APP_ALLOWED_ORIGIN=https://yourdomain.com
+```
+
+If not set, the backend allows `*`. For production, use live Stripe keys and a live webhook to get a live `whsec_...`.
 
 ### 5. Deploy Functions
 
@@ -56,7 +86,7 @@ firebase deploy --only functions
 ```
 
 After deployment, you'll get URLs like:
-- `https://your-region-your-project.cloudfunctions.net/createPaymentIntent`
+- `https://your-region-your-project.cloudfunctions.net/createPaymentLink`
 - `https://your-region-your-project.cloudfunctions.net/stripeWebhook`
 
 ### 6. Update Frontend Configuration
@@ -76,30 +106,28 @@ npm run serve
 ```
 
 This starts the Firebase emulator. The functions will be available at:
-- `http://localhost:5001/your-project/your-region/createPaymentIntent`
+- `http://localhost:5001/your-project/your-region/createPaymentLink`
 
 Update your frontend `VITE_BACKEND_URL` to point to the emulator URL during development.
 
 ## API Endpoints
 
-### POST /createPaymentIntent
+### POST /createPaymentLink
 
-Creates a Stripe Payment Intent for an order.
+Creates a Stripe Payment Link for an order. The customer is redirected to Stripe's hosted checkout; after payment they are redirected to `successUrl`. Amount is taken from the order in Firestore.
 
 **Request Body:**
 ```json
 {
   "orderId": "order_id_from_firestore",
-  "amount": 5000,
-  "currency": "usd"
+  "successUrl": "https://yoursite.com/order-confirmation/ORDER_ID"
 }
 ```
 
 **Response:**
 ```json
 {
-  "clientSecret": "pi_xxx_secret_xxx",
-  "paymentIntentId": "pi_xxx"
+  "url": "https://buy.stripe.com/..."
 }
 ```
 
@@ -110,9 +138,9 @@ Creates a Stripe Payment Intent for an order.
 
 ### POST /stripeWebhook
 
-Handles Stripe webhook events (payment succeeded, failed, etc.).
+Handles Stripe webhook events: `checkout.session.completed` (Payment Link payments), `payment_intent.succeeded`, `payment_intent.payment_failed`.
 
-**Note:** Configure this URL in Stripe Dashboard → Developers → Webhooks
+**Note:** In Stripe Dashboard → Developers → Webhooks, add endpoint with URL above and subscribe to: `checkout.session.completed`, `payment_intent.succeeded`, `payment_intent.payment_failed`.
 
 ## Security
 

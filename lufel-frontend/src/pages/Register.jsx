@@ -66,7 +66,7 @@ const Register = () => {
       } else if (err.code === 'auth/invalid-email') {
         setError('Adresă email invalidă. Te rugăm să introduci un email valid.');
       } else {
-        setError(err.message || 'Nu s-a putut crea contul. Te rugăm să încerci din nou.');
+        setError('Nu s-a putut crea contul. Te rugăm să încerci din nou.');
       }
     }
   };

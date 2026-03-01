@@ -24,7 +24,12 @@ export const getProducts = async () => {
     }));
     return products;
   } catch (error) {
-    console.error('Error getting products:', error);
+    // Log Firestore-specific info for debugging
+    console.error('Error getting products:', {
+      code: error?.code,
+      message: error?.message,
+      name: error?.name,
+    });
     throw error;
   }
 };

@@ -16,7 +16,7 @@ const Shop = () => {
         setError(null);
       } catch (err) {
         console.error('Error fetching products:', err);
-        setError('Nu s-au putut încărca produsele. Te rugăm să încerci din nou mai târziu.');
+        setError('Nu s-au putut încărca produsele. Te rugăm să încerci din nou în câteva momente.');
       } finally {
         setLoading(false);
       }

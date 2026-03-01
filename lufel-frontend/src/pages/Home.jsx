@@ -3,38 +3,36 @@ import { Link } from 'react-router-dom';
 const Home = () => {
   return (
     <div className="min-h-screen">
-      {/* Video Hero Section */}
-      <section className="relative h-[50vh] sm:h-[60vh] md:h-[80vh] lg:h-[90vh] overflow-hidden bg-gray-900">
+      {/* Video Hero Section: full height on mobile for portrait video, desktop heights from md up */}
+      <section className="relative h-[100vh] sm:h-[100vh] md:h-[80vh] lg:h-[90vh] overflow-hidden bg-gray-900">
         <div className="absolute inset-0 z-0">
-          {/* Placeholder YouTube video - Replace with client's video when available */}
-          {/* To use your own video: Replace the iframe below with a <video> tag pointing to your video file */}
           <div className="absolute inset-0 w-full h-full">
-            <iframe
-              className="absolute top-1/2 left-1/2 w-full h-[56.25vw] min-h-full min-w-[177.78vh]"
-              src="https://www.youtube.com/embed/-YCGK33c0xs?autoplay=1&mute=1&loop=1&playlist=-YCGK33c0xs&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&start=27"
-              title="Pottery Making Video"
-              allow="autoplay; encrypted-media; picture-in-picture"
-              allowFullScreen
-              style={{
-                transform: 'translate(-50%, -50%)',
-              }}
-            />
-            {/* Alternative: Use local video file (uncomment when you have the client's video) */}
-            {/*
+            {/* Mobile video: full viewport height, object-contain so entire portrait video fits */}
             <video
               autoPlay
               loop
               muted
               playsInline
-              className="absolute top-0 left-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-contain object-center md:hidden"
+              aria-label="Video hero mobil"
             >
-              <source src="/videos/pottery-video.mp4" type="video/mp4" />
-              <source src="/videos/pottery-video.webm" type="video/webm" />
+              <source src="/videos/hero-mobile.mp4" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
-            */}
+            {/* Desktop video: fills area, hidden on small screens, visible from md up */}
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover hidden md:block"
+              aria-label="Video hero desktop"
+            >
+              <source src="/videos/hero-desktop.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
           </div>
-          {/* Gradient overlay across top to hide YouTube title and blend with content */}
+          {/* Gradient overlay */}
           <div className="absolute top-0 left-0 w-full h-40 sm:h-48 md:h-56 bg-gradient-to-b from-black via-black/80 to-transparent z-10 pointer-events-none"></div>
           {/* Overlay for better text readability */}
           <div className="absolute inset-0 bg-black bg-opacity-40 z-10"></div>
